@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Central demonstrativa para registrar, priorizar e acompanhar chamados de suporte de TI.">
+  <title>Central TI | Chamados e suporte</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="Central TI, início">
+        <span class="brand-mark">CT</span><span><strong>Central TI</strong><small>Atendimento técnico</small></span>
+      </a>
+      <div class="sidebar-label">ESPAÇO DE TRABALHO</div>
+      <a class="side-link active" href="{{ url_for('index') }}"><span class="side-icon">▦</span>Visão geral</a>
+      <a class="side-link" href="#chamados"><span class="side-icon">▤</span>Chamados <span class="side-count">{{ active_count }}</span></a>
+      <a class="side-link" href="#novo-chamado"><span class="side-icon">＋</span>Novo chamado</a>
+      <div class="sidebar-note"><span class="live-dot"></span> Ambiente de demonstração<p>Dados fictícios para apresentação do projeto.</p></div>
+      <div class="profile"><span class="avatar">TI</span><span><strong>Equipe de suporte</strong><small>Central interna</small></span><span class="profile-more">•••</span></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumb">Suporte <span>/</span> <strong>Visão geral</strong></div>
+        <div class="topbar-actions"><span class="today">Operação de TI</span><a class="button button-primary button-small" href="#novo-chamado">＋ Novo chamado</a></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="page-heading">
+          <div><p class="eyebrow">PAINEL DE ATENDIMENTO</p><h1>Central de chamados</h1><p class="subheading">Acompanhe solicitações, prioridades e prazos em um só lugar.</p></div>
+          <div class="heading-date"><span class="calendar-icon">▦</span><span><small>VISÃO ATUAL</small><strong>Todos os chamados</strong></span></div>
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}<div class="flash-list" role="status">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% endwith %}
+
+        <section class="metrics" aria-label="Indicadores de atendimento">
+          <article class="metric-card"><div class="metric-top"><span>Chamados ativos</span><span class="metric-icon blue">◷</span></div><strong class="metric-value">{{ active_count }}</strong><div class="metric-foot"><span class="status-dot blue-dot"></span> Abertos, em atendimento ou aguardando</div></article>
+          <article class="metric-card"><div class="metric-top"><span>Resolvidos</span><span class="metric-icon green">✓</span></div><strong class="metric-value">{{ resolved_count }}</strong><div class="metric-foot"><span class="status-dot green-dot"></span> Resolvidos ou fechados</div></article>
+          <article class="metric-card"><div class="metric-top"><span>Tempo médio de resolução</span><span class="metric-icon violet">⌁</span></div><strong class="metric-value">{% if avg_minutes is not none %}{% if avg_minutes >= 60 %}{{ (avg_minutes // 60) }}h {{ avg_minutes % 60 }}min{% else %}{{ avg_minutes }} min{% endif %}{% else %}—{% endif %}</strong><div class="metric-foot">Baseado em {{ resolved_count }} chamado(s) concluído(s)</div></article>
+          <article class="metric-card"><div class="metric-top"><span>Total registrado</span><span class="metric-icon amber">▤</span></div><strong class="metric-value">{{ total_count }}</strong><div class="mini-bars" role="img" aria-label="Chamados por status">{% for bar in status_bars %}<i style="height:{{ bar.height }}%" title="{{ bar.label }}: {{ bar.count }}"></i>{% endfor %}</div></article>
+        </section>
+
+        <section class="overview-grid">
+          <article class="panel status-panel"><div class="panel-heading"><div><h2>Chamados por status</h2><p>Distribuição atual da fila de atendimento</p></div><span class="panel-menu">•••</span></div>
+            <div class="status-summary"><div class="donut" style="background:{{ chart_gradient }}"><div><strong>{{ total_count }}</strong><small>no total</small></div></div>
+              <div class="legend"><div><span class="legend-mark active-mark"></span><span>Em aberto</span><strong>{{ status_counts.get('Aberto', 0) }}</strong></div><div><span class="legend-mark progress-mark"></span><span>Em atendimento</span><strong>{{ status_counts.get('Em atendimento', 0) }}</strong></div><div><span class="legend-mark wait-mark"></span><span>Aguardando usuário</span><strong>{{ status_counts.get('Aguardando usuário', 0) }}</strong></div><div><span class="legend-mark done-mark"></span><span>Concluídos</span><strong>{{ resolved_count }}</strong></div></div>
+            </div>
+          </article>
+          <article class="panel priority-panel"><div class="panel-heading"><div><h2>Fila por prioridade</h2><p>Chamados ativos que ainda precisam de atenção</p></div><span class="panel-menu">•••</span></div>
+            <div class="priority-list"><div><span class="priority-badge critical">Crítica</span><div class="priority-track"><i class="critical-fill" style="width:{{ (priority_counts.get('Crítica', 0) * 100 / (priority_total if priority_total else 1))|round|int }}%"></i></div><strong>{{ priority_counts.get('Crítica', 0) }}</strong></div><div><span class="priority-badge high">Alta</span><div class="priority-track"><i class="high-fill" style="width:{{ (priority_counts.get('Alta', 0) * 100 / (priority_total if priority_total else 1))|round|int }}%"></i></div><strong>{{ priority_counts.get('Alta', 0) }}</strong></div><div><span class="priority-badge medium">Média</span><div class="priority-track"><i class="medium-fill" style="width:{{ (priority_counts.get('Média', 0) * 100 / (priority_total if priority_total else 1))|round|int }}%"></i></div><strong>{{ priority_counts.get('Média', 0) }}</strong></div><div><span class="priority-badge low">Baixa</span><div class="priority-track"><i class="low-fill" style="width:{{ (priority_counts.get('Baixa', 0) * 100 / (priority_total if priority_total else 1))|round|int }}%"></i></div><strong>{{ priority_counts.get('Baixa', 0) }}</strong></div></div>
+            <p class="panel-footnote">Distribuição dos {{ priority_total }} chamados ativos, independente dos filtros da tabela.</p>
+          </article>
+        </section>
+
+        <section class="panel tickets-panel" id="chamados">
+          <div class="panel-heading tickets-heading"><div><h2>Chamados recentes</h2><p>Consulte solicitações e atualize o andamento</p></div><a href="#novo-chamado" class="text-link">＋ Registrar chamado</a></div>
+          <form class="filters" method="get" action="{{ url_for('index') }}">
+            <label class="search-box"><span>⌕</span><input type="search" name="q" value="{{ query }}" placeholder="Buscar por protocolo, solicitante ou título" aria-label="Buscar chamados"></label>
+            <select name="status" aria-label="Filtrar por status"><option value="">Todos os status</option>{% for item in statuses %}<option value="{{ item }}" {% if selected_status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+            <select name="category" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option>{% for item in categories %}<option value="{{ item }}" {% if selected_category == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+            <select name="priority" aria-label="Filtrar por prioridade"><option value="">Todas as prioridades</option>{% for item in priorities %}<option value="{{ item }}" {% if selected_priority == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+            <button class="button button-filter" type="submit">Filtrar</button>
+            {% if query or selected_status or selected_category or selected_priority %}<a class="clear-filters" href="{{ url_for('index') }}">Limpar</a>{% endif %}
+          </form>
+          <div class="table-scroll"><table><thead><tr><th>CHAMADO</th><th>SOLICITANTE</th><th>CATEGORIA</th><th>PRIORIDADE</th><th>STATUS</th><th>ABERTO EM</th><th>{% if demo_read_only %}DEMO{% else %}ATUALIZAR{% endif %}</th></tr></thead><tbody>
+            {% for ticket in tickets %}<tr><td><a class="ticket-title" href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}">{{ ticket.title }}</a><small class="ticket-protocol">{{ ticket.protocol }}</small></td><td><strong class="requester-name">{{ ticket.requester }}</strong><small class="ticket-protocol">{{ ticket.email }}</small></td><td><span class="category-cell">{{ ticket.category }}</span></td><td><span class="priority-badge {{ ticket.priority|lower|replace('í','i')|replace('critica','critical') }}">{{ ticket.priority }}</span></td><td><span class="status-pill status-{{ ticket.status|lower|replace(' ','-')|replace('ã','a')|replace('ú','u') }}"><i></i>{{ ticket.status }}</span></td><td><time datetime="{{ ticket.created_at }}">{{ ticket.created_at|datetime_br }}</time></td><td>{% if demo_read_only %}<span class="demo-read-only">Somente leitura</span>{% else %}<form class="status-form" action="{{ url_for('update_status', ticket_id=ticket.id) }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="status" aria-label="Atualizar status do chamado {{ ticket.protocol }}">{% for item in statuses %}<option value="{{ item }}" {% if ticket.status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select><button type="submit" aria-label="Salvar status">↗</button></form>{% endif %}</td></tr>
+            {% else %}<tr><td class="empty-state" colspan="7"><span>⌕</span><strong>Nenhum chamado encontrado</strong><small>Ajuste os filtros ou registre uma nova solicitação.</small></td></tr>{% endfor %}
+          </tbody></table></div>
+          <div class="table-footer"><span>Exibindo <strong>{{ tickets|length }}</strong> de <strong>{{ total_count }}</strong> chamado(s)</span><span class="demo-caption"><i></i> Atualização de status salva no banco local</span></div>
+        </section>
+
+        <section class="panel new-ticket-panel" id="novo-chamado">
+          <div class="panel-heading"><div><h2>Registrar novo chamado</h2><p>Descreva a solicitação para a equipe de suporte</p></div><span class="new-ticket-icon">＋</span></div>
+          {% if demo_read_only %}<p class="readonly-note">Esta publicação está em modo de demonstração somente leitura. O formulário fica disponível quando o projeto é executado localmente.</p>{% else %}<form class="ticket-form" action="{{ url_for('create_ticket') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Nome do solicitante<input name="requester" value="{{ form_values.get('requester', '') }}" maxlength="80" required placeholder="Ex.: Ana Souza"></label>
+            <label>E-mail corporativo<input name="email" type="email" value="{{ form_values.get('email', '') }}" maxlength="120" required placeholder="ana@empresa.com"></label>
+            <label class="span-two">Título do chamado<input name="title" value="{{ form_values.get('title', '') }}" maxlength="120" required placeholder="Resuma o problema ou solicitação"></label>
+            <label>Categoria<select name="category" required><option value="">Selecione uma categoria</option>{% for item in categories %}<option value="{{ item }}" {% if form_values.get('category') == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+            <label>Prioridade<select name="priority" required><option value="">Selecione a prioridade</option>{% for item in priorities %}<option value="{{ item }}" {% if form_values.get('priority') == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+            <label class="span-two">Descrição<textarea name="description" maxlength="2000" rows="4" required placeholder="Informe o contexto, mensagens de erro e o impacto no trabalho">{{ form_values.get('description', '') }}</textarea></label>
+            <div class="form-actions span-two"><span>O chamado será criado com status <strong>Aberto</strong>.</span><button class="button button-primary" type="submit">Registrar chamado <span>→</span></button></div>
+          </form>{% endif %}
+        </section>
+        <footer class="footer"><span>Central TI <span class="footer-dot">•</span> Projeto demonstrativo de suporte técnico</span><span>Flask · SQLite · HTML · CSS</span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

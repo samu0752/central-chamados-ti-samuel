@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ ticket.protocol }} | Central TI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">CT</span><span><strong>Central TI</strong><small>Atendimento técnico</small></span></a>
+      <div class="sidebar-label">ESPAÇO DE TRABALHO</div>
+      <a class="side-link" href="{{ url_for('index') }}"><span class="side-icon">▦</span>Visão geral</a>
+      <a class="side-link active" href="{{ url_for('index') }}#chamados"><span class="side-icon">▤</span>Chamados</a>
+      <div class="sidebar-note"><span class="live-dot"></span> Ambiente de demonstração<p>Dados fictícios para apresentação do projeto.</p></div>
+      <div class="profile"><span class="avatar">TI</span><span><strong>Equipe de suporte</strong><small>Central interna</small></span><span class="profile-more">•••</span></div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar"><div class="breadcrumb"><a href="{{ url_for('index') }}">Suporte</a><span>/</span><a href="{{ url_for('index') }}#chamados">Chamados</a><span>/</span><strong>{{ ticket.protocol }}</strong></div><div class="topbar-actions"><a class="button button-primary button-small" href="{{ url_for('index') }}#novo-chamado">＋ Novo chamado</a></div></header>
+      <div class="page-wrap detail-wrap">
+        <a class="back-link" href="{{ url_for('index') }}#chamados">← Voltar para chamados</a>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}<div class="flash-list" role="status">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% endwith %}
+        <section class="detail-header"><div><p class="eyebrow">SOLICITAÇÃO {{ ticket.protocol }}</p><h1>{{ ticket.title }}</h1><p class="subheading">Registrado em {{ ticket.created_at|datetime_br }} · Atualizado em {{ ticket.updated_at|datetime_br }}</p></div><span class="priority-badge {{ ticket.priority|lower|replace('í','i')|replace('critica','critical') }}">Prioridade {{ ticket.priority }}</span></section>
+        <div class="detail-grid">
+          <section class="panel detail-main"><div class="panel-heading"><div><h2>Descrição do problema</h2><p>Contexto informado pelo solicitante</p></div></div><div class="description-box">{{ ticket.description }}</div><div class="detail-meta"><div><small>CATEGORIA</small><strong>{{ ticket.category }}</strong></div><div><small>STATUS ATUAL</small><span class="status-pill status-{{ ticket.status|lower|replace(' ','-')|replace('ã','a')|replace('ú','u') }}"><i></i>{{ ticket.status }}</span></div></div></section>
+          <aside class="panel requester-panel"><div class="panel-heading"><div><h2>Solicitante</h2><p>Contato da solicitação</p></div></div><div class="requester-card"><span class="requester-avatar">{{ ticket.requester[:1]|upper }}</span><div><strong>{{ ticket.requester }}</strong><a href="mailto:{{ ticket.email }}">{{ ticket.email }}</a></div></div><div class="update-status"><h3>Atualizar andamento</h3>{% if demo_read_only %}<p class="readonly-note">Atualizações ficam desativadas na demonstração pública.</p>{% else %}<form action="{{ url_for('update_status', ticket_id=ticket.id) }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to" value="{{ url_for('ticket_detail', ticket_id=ticket.id) }}"><label for="status-select">Novo status</label><select id="status-select" name="status">{% for item in statuses %}<option value="{{ item }}" {% if ticket.status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select><button class="button button-primary" type="submit">Salvar atualização</button></form>{% endif %}</div></aside>
+        </div>
+        <footer class="footer"><span>Central TI <span class="footer-dot">•</span> Projeto demonstrativo de suporte técnico</span><span>Flask · SQLite · HTML · CSS</span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
